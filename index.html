@@ -64,6 +64,10 @@
             font-weight: 600;
         }
 
+        .start-over {
+            background: #da9370;
+            min-height: unset;
+        }
 
         button:disabled {
             opacity: .4;
@@ -73,7 +77,7 @@
         .stats {
             text-align: center;
             line-height: 1.75;
-            margin-top: 16px;
+            margin: 16px 0 32px 0;
             font-size: .9rem;
             opacity: .9
         }
@@ -133,7 +137,8 @@
 
         </div>
 
-        <div id="game" class="hidden">
+        <div id="game" class="center hidden">
+
 
             <div class="center" id="roundLabel"></div>
 
@@ -151,6 +156,7 @@
 
             <div class="stats" id="liveStats"></div>
 
+            <button class="center start-over" id="startOverBtn">Neue Runde</button>
         </div>
 
         <div id="result" class="hidden center">
@@ -327,12 +333,22 @@
             nextRound()
         }
 
+        function startOver() {
+            document.getElementById("game").classList.add("hidden")
+            document.getElementById("setup").classList.remove("hidden")
+            round = 0
+            score = 0
+            correctHistory = []
+        }
+
         document.getElementById("startBtn").onclick = startGame
         playBtn.onclick = playPair
         nextBtn.onclick = nextRound
 
         tone1Btn.onclick = () => answer(true)
         tone2Btn.onclick = () => answer(false)
+
+        startOverBtn.onclick = () => startOver()
 
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("sw.js")
