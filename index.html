@@ -26,30 +26,9 @@
             padding: 20px;
         }
 
-        #app {
-            width: 100%;
-            max-width: 700px
-        }
-
-        .card {
-            background: var(--card);
-            padding: 24px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
-        }
-
         h1 {
             margin-top: 0;
             text-align: center
-        }
-
-        .controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            text-align: center;
-            align-items: end;
-            gap: 12px;
-            margin: 50px;
         }
 
         button {
@@ -64,26 +43,9 @@
             font-weight: 600;
         }
 
-        .start-over {
-            background: #da9370;
-            min-height: unset;
-        }
-
         button:disabled {
             opacity: .4;
             cursor: default
-        }
-
-        .stats {
-            text-align: center;
-            line-height: 1.75;
-            margin: 16px 0 32px 0;
-            font-size: .9rem;
-            opacity: .9
-        }
-
-        .center {
-            text-align: center
         }
 
         select {
@@ -94,14 +56,56 @@
             text-align: center;
         }
 
+        #app {
+            width: 100%;
+            max-width: 700px;
+            background: var(--card);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
+        }
+
+        #feedback {
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        #liveStats {
+            text-align: center;
+            line-height: 1.75;
+            margin: 16px 0 32px 0;
+            font-size: .9rem;
+            opacity: .9
+        }
+
+        #startOverBtn {
+            text-align: center;
+            background: #da9370;
+            min-height: unset;
+        }
+
+        .center {
+            text-align: center
+        }
+
         .hidden {
             display: none
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            text-align: center;
+            align-items: end;
+            gap: 12px;
+            margin: 50px;
         }
     </style>
 </head>
 
 <body>
-    <div id="app" class="card">
+    <div id="app">
 
         <h1>Hörtraining</h1>
 
@@ -152,11 +156,11 @@
                 <button id="tone2Btn" disabled>2. Ton höher</button>
             </div>
 
-            <div class="center" id="feedback"></div>
+            <div id="feedback"></div>
 
-            <div class="stats" id="liveStats"></div>
+            <div id="liveStats"></div>
 
-            <button class="center start-over" id="startOverBtn">Neue Runde</button>
+            <button id="startOverBtn">Neue Runde</button>
         </div>
 
         <div id="result" class="hidden center">
