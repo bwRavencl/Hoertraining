@@ -1,17 +1,17 @@
 {
-    "name": "Hörtraining",
-    "short_name": "Hörtraining",
-    "description": "Training zum Erkennen von Tonhöhenunterschieden",
-    "start_url": "./",
-    "display": "standalone",
-    "background_color": "#0f172a",
-    "theme_color": "#0f172a",
-    "orientation": "portrait",
-    "icons": [
-        {
-            "src": "icon.png",
-            "sizes": "192x192",
-            "type": "image/png"
-        }
-    ]
+  "name": "Hörtraining",
+  "short_name": "Hörtraining",
+  "description": "Training zum Erkennen von Tonhöhenunterschieden",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
 }
