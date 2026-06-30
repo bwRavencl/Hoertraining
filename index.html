@@ -31,10 +31,20 @@
             text-align: center
         }
 
+        label {
+            display: grid;
+            justify-items: center;
+            gap: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
         button {
             font-size: 1.25rem;
             padding: 16px;
             min-height: 5rem;
+            min-width: 9rem;
+            width: 75%;
             border-radius: 10px;
             border: none;
             cursor: pointer;
@@ -52,6 +62,7 @@
             padding: 6px;
             margin-top: 6px;
             border-radius: 6px;
+            width: 6rem;
             border: none;
             text-align: center;
         }
@@ -79,10 +90,9 @@
             opacity: .9
         }
 
-        #startOverBtn {
-            text-align: center;
-            background: #da9370;
-            min-height: unset;
+        #startBtn {
+            width: unset;
+            width: 33%;
         }
 
         .center {
@@ -96,23 +106,25 @@
         .controls {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            text-align: center;
+            justify-items: center;
             align-items: end;
             gap: 12px;
-            margin: 50px;
+            margin: 50px 0 50px 0;
+        }
+
+        .startOverBtn {
+            background: #da9370;
+            min-height: unset;
+            width: 33%;
         }
     </style>
 </head>
 
 <body>
     <div id="app">
-
         <h1>Hörtraining</h1>
-
         <div id="setup">
-
             <div class="controls">
-
                 <label>
                     Start-Schwierigkeit<br>
                     <select id="difficulty">
@@ -122,7 +134,6 @@
                         <option value="3">schwer</option>
                     </select>
                 </label>
-
                 <label>
                     Wellenform<br>
                     <select id="waveform">
@@ -132,49 +143,34 @@
                         <option value="sawtooth">Sägezahn</option>
                     </select>
                 </label>
-
             </div>
-
             <div class="center">
-                <button id="startBtn">Training starten</button>
+                <button id="startBtn" onclick="startGame()">Training starten</button>
             </div>
-
         </div>
-
         <div id="game" class="center hidden">
-
-
             <div class="center" id="roundLabel"></div>
-
             <div class="controls">
-                <button id="playBtn">Abspielen</button>
-                <button id="nextBtn" disabled>Weiter</button>
+                <button id="playBtn" onclick="playPair()">Abspielen</button>
+                <button id="nextBtn" onclick="nextPair()" disabled>Weiter</button>
             </div>
-
             <div class="controls">
-                <button id="tone1Btn" disabled>1. Ton höher</button>
-                <button id="tone2Btn" disabled>2. Ton höher</button>
+                <button id="tone1Btn" onclick="answer(true)" disabled>1. Ton höher</button>
+                <button id="tone2Btn" onclick="answer(false)" disabled>2. Ton höher</button>
             </div>
-
             <div id="feedback"></div>
-
             <div id="liveStats"></div>
-
-            <button id="startOverBtn">Neue Runde</button>
+            <button class="startOverBtn" onclick="startOver()">Neue Runde</button>
         </div>
-
         <div id="result" class="hidden center">
             <h2>Ergebnis</h2>
             <div id="finalScore"></div>
             <div id="sessionStats"></div>
             <br>
-            <button onclick="location.reload()">neue Runde</button>
+            <button class="startOverBtn" onclick="startOver()">Neue Runde</button>
         </div>
-
     </div>
-
     <script>
-
         const TOTAL_ROUNDS = 20
 
         let round = 0
@@ -246,7 +242,7 @@
             }
         }
 
-        function nextRound() {
+        function nextPair() {
             round++
 
             if (round > TOTAL_ROUNDS) {
@@ -268,7 +264,6 @@
         }
 
         function answer(firstHigher) {
-
             if (answered) return
 
             answered = true
@@ -334,25 +329,17 @@
             document.getElementById("setup").classList.add("hidden")
             document.getElementById("game").classList.remove("hidden")
 
-            nextRound()
+            nextPair()
         }
 
         function startOver() {
             document.getElementById("game").classList.add("hidden")
+            document.getElementById("result").classList.add("hidden")
             document.getElementById("setup").classList.remove("hidden")
             round = 0
             score = 0
             correctHistory = []
         }
-
-        document.getElementById("startBtn").onclick = startGame
-        playBtn.onclick = playPair
-        nextBtn.onclick = nextRound
-
-        tone1Btn.onclick = () => answer(true)
-        tone2Btn.onclick = () => answer(false)
-
-        startOverBtn.onclick = () => startOver()
 
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("sw.js")
