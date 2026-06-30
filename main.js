@@ -1,261 +1,451 @@
-const TOTAL_ROUNDS = 15;
+"use strict";
 
-let round = 0;
-let score = 0;
-let difficulty;
-let waveform;
+/**
+ * Pitch interval ear-training game.
+ *
+ * The module is split into four independent pieces:
+ *  - AudioEngine         plays tones via the Web Audio API
+ *  - IntervalGenerator   produces random frequency pairs at a given difficulty
+ *  - BalloonCelebration  DOM-based balloon animation to celebrate near perfect rounds
+ *  - GameController      owns game state, wires up the DOM, and drives the round loop
+ */
 
-let freq1;
-let freq2;
+// ---------------------------------------------------------------------------
+// Configuration
+// ---------------------------------------------------------------------------
 
-let answered = false;
-let played = false;
+const CONFIG = Object.freeze({
+  TOTAL_ROUNDS: 15,
+  BASE_FREQ_MIN: 220,
+  BASE_FREQ_MAX: 660, // 220 + 440
+  TONE_DURATION_SEC: 0.6,
+  TONE_GAP_MS: 800,
+  DIFFICULTY_MIN_SEMITONES: 1,
+  DIFFICULTY_MAX_SEMITONES: 12,
+  DIFFICULTY_STEP_SEMITONES: 0.5,
+  CELEBRATION_ACCURACY_THRESHOLD: 90,
+  BALLOON_PX_PER_BALLOON: 100,
+  BALLOON_SIZE_MIN_PX: 28,
+  BALLOON_SIZE_MAX_PX: 48,
+  BALLOON_RISE_SPEED_MIN: 150,
+  BALLOON_RISE_SPEED_MAX: 300,
+  BALLOON_SWAY_MIN_PX: 15,
+  BALLOON_SWAY_MAX_PX: 35,
+  BALLOON_SWAY_SPEED_MIN: 1.5,
+  BALLOON_SWAY_SPEED_MAX: 2.8,
+  BALLOON_MAX_START_DELAY_MS: 900,
+  BALLOON_FADE_IN_SEC: 0.3,
+});
 
-let correctHistory = [];
+// ---------------------------------------------------------------------------
+// Utilities
+// ---------------------------------------------------------------------------
 
-let audioCtx;
-
-const playBtn = document.getElementById("playBtn");
-const nextBtn = document.getElementById("nextBtn");
-const tone1Btn = document.getElementById("tone1Btn");
-const tone2Btn = document.getElementById("tone2Btn");
-
-function randomBaseFrequency() {
-  return 220 + Math.random() * 440;
+/** @returns {number} a random float in [min, max) */
+function randomBetween(min, max) {
+  return min + Math.random() * (max - min);
 }
 
-function intervalRatio(semitones) {
+/**
+ * Converts a semitone interval to a frequency ratio.
+ * @param {number} semitones
+ * @returns {number}
+ */
+function semitonesToRatio(semitones) {
   return Math.pow(2, semitones / 12);
 }
 
-function generatePair() {
-  const base = randomBaseFrequency();
-  const ratio = intervalRatio(difficulty);
+// ---------------------------------------------------------------------------
+// AudioEngine
+// ---------------------------------------------------------------------------
 
-  if (Math.random() < 0.5) {
-    freq1 = base;
-    freq2 = base * ratio;
-  } else {
-    freq1 = base * ratio;
-    freq2 = base;
-  }
-}
-
-function playTone(freq, duration = 0.6) {
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-
-  osc.type = waveform;
-  osc.frequency.value = freq;
-
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  const now = audioCtx.currentTime;
-
-  gain.gain.setValueAtTime(0.001, now);
-  gain.gain.exponentialRampToValueAtTime(0.5, now + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-  osc.start();
-  osc.stop(now + duration);
-}
-
-function playPair() {
-  playTone(freq1);
-  setTimeout(() => playTone(freq2), 800);
-
-  if (!played) {
-    tone1Btn.disabled = false;
-    tone2Btn.disabled = false;
-    playBtn.innerText = "Erneut abspielen";
-    played = true;
-  }
-}
-
-function nextPair() {
-  round++;
-
-  if (round > TOTAL_ROUNDS) {
-    finishGame();
-    return;
-  }
-
-  answered = false;
-  played = false;
-
-  playBtn.innerText = "Abspielen";
-  nextBtn.disabled = true;
-
-  tone1Btn.disabled = true;
-  tone2Btn.disabled = true;
-
-  generatePair();
-  updateUI();
-}
-
-function answer(firstHigher) {
-  if (answered) {
-    return;
-  }
-
-  answered = true;
-  const correct = (freq1 > freq2 && firstHigher) || (freq2 > freq1 && !firstHigher);
-
-  if (correct) {
-    score++;
-    correctHistory.push(true);
-    document.getElementById("feedback").innerHTML = "✅ Super! (+1 Punkt)";
-  } else {
-    correctHistory.push(false);
-    document.getElementById("feedback").innerHTML = "❌ Falsch - Höre nochmal!";
-  }
-
-  tone1Btn.disabled = true;
-  tone2Btn.disabled = true;
-  nextBtn.disabled = false;
-
-  adaptDifficulty(correct);
-  updateStats();
-}
-
-function adaptDifficulty(correct) {
-  if (correct) {
-    difficulty = Math.max(1, difficulty - 0.5);
-  } else {
-    difficulty = Math.min(12, difficulty + 0.5);
-  }
-}
-
-function updateUI() {
-  document.getElementById("roundLabel").innerText = "Tonpaar " + round + " / " + TOTAL_ROUNDS;
-  document.getElementById("feedback").innerText = "";
-  updateStats();
-}
-
-function updateStats() {
-  const accuracy = correctHistory.length
-    ? Math.round((correctHistory.filter((x) => x).length / correctHistory.length) * 100)
-    : 0;
-
-  document.getElementById("liveStats").innerHTML =
-    "Punkte:&nbsp;" +
-    score +
-    "&emsp;Trefferquote:&nbsp;" +
-    accuracy +
-    "%" +
-    "&emsp;Intervall:&nbsp;" +
-    difficulty.toFixed(1) +
-    "&nbsp;HT";
-}
-
-let animId,
-  balloons = [];
-
-function rand(a, b) {
-  return a + Math.random() * (b - a);
-}
-
-function launchBalloons() {
-  balloons = [];
-  if (animId) {
-    cancelAnimationFrame(animId);
-  }
-
-  const W = document.body.offsetWidth;
-  const COUNT = W / 100;
-
-  for (let i = 0; i < COUNT; i++) {
-    const el = document.createElement("div");
-    el.textContent = "🎈";
-    el.style.cssText = `position:absolute;font-size:${rand(28, 48)}px;user-select:none;will-change:transform;display:none;filter: hue-rotate(${rand(0, 360)}deg)`;
-    document.body.appendChild(el);
-    balloons.push({
-      el,
-      x: rand(-W / 2 + 50, W / 2 - 50),
-      y: document.body.offsetHeight - rand(0, 120),
-      vy: rand(150, 300),
-      sway: rand(15, 35),
-      swaySpeed: rand(1.5, 2.8),
-      swayOffset: rand(0, Math.PI * 2),
-      delay: rand(0, 900),
-    });
-  }
-
-  let start = null;
-
-  function frame(ts) {
-    if (!start) {
-      start = ts;
+class AudioEngine {
+  /** @param {OscillatorType} waveform */
+  constructor(waveform) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      throw new Error("Web Audio API is not supported in this browser.");
     }
-    const elapsed = (ts - start) / 1000;
+    this.context = new AudioContextClass();
+    this.waveform = waveform;
+  }
+
+  /**
+   * Plays a single tone with a short attack/decay envelope.
+   * @param {number} frequency
+   * @param {number} [duration]
+   */
+  playTone(frequency, duration = CONFIG.TONE_DURATION_SEC) {
+    const oscillator = this.context.createOscillator();
+    const gain = this.context.createGain();
+
+    oscillator.type = this.waveform;
+    oscillator.frequency.value = frequency;
+
+    oscillator.connect(gain);
+    gain.connect(this.context.destination);
+
+    const now = this.context.currentTime;
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.exponentialRampToValueAtTime(0.5, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    oscillator.start(now);
+    oscillator.stop(now + duration);
+  }
+
+  /**
+   * Plays two tones in sequence, separated by a fixed gap.
+   * @param {number} firstFrequency
+   * @param {number} secondFrequency
+   * @param {() => void} [onComplete] called once both tones have been scheduled
+   */
+  playPair(firstFrequency, secondFrequency, onComplete) {
+    this.playTone(firstFrequency);
+    setTimeout(() => {
+      this.playTone(secondFrequency);
+      if (onComplete) {
+        onComplete();
+      }
+    }, CONFIG.TONE_GAP_MS);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// IntervalGenerator - produces frequency pairs and adapts difficulty
+// ---------------------------------------------------------------------------
+
+class IntervalGenerator {
+  /** @param {number} initialDifficultySemitones */
+  constructor(initialDifficultySemitones) {
+    this.difficulty = initialDifficultySemitones;
+  }
+
+  /** @returns {{ first: number, second: number }} */
+  generatePair() {
+    const base = randomBetween(CONFIG.BASE_FREQ_MIN, CONFIG.BASE_FREQ_MAX);
+    const ratio = semitonesToRatio(this.difficulty);
+    const higherFirst = Math.random() < 0.5;
+
+    return higherFirst ? { first: base * ratio, second: base } : { first: base, second: base * ratio };
+  }
+
+  /**
+   * Tightens the interval after a correct answer, widens it after a wrong one,
+   * clamped to the configured difficulty range.
+   * @param {boolean} wasCorrect
+   */
+  adapt(wasCorrect) {
+    const step = wasCorrect ? -CONFIG.DIFFICULTY_STEP_SEMITONES : CONFIG.DIFFICULTY_STEP_SEMITONES;
+    const next = this.difficulty + step;
+    this.difficulty = Math.min(CONFIG.DIFFICULTY_MAX_SEMITONES, Math.max(CONFIG.DIFFICULTY_MIN_SEMITONES, next));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// BalloonCelebration - lightweight animation for a high-accuracy finish
+// ---------------------------------------------------------------------------
+
+class BalloonCelebration {
+  constructor() {
+    this.balloons = [];
+    this.animationFrameId = null;
+  }
+
+  launch() {
+    this.stop();
+
+    const viewportWidth = document.body.offsetWidth;
+    const viewportHeight = document.body.offsetHeight;
+    const balloonCount = Math.max(1, Math.floor(viewportWidth / CONFIG.BALLOON_PX_PER_BALLOON));
+
+    this.balloons = Array.from({ length: balloonCount }, () => this.createBalloon(viewportWidth, viewportHeight));
+
+    let startTimestamp = null;
+    const step = (timestamp) => {
+      if (startTimestamp === null) {
+        startTimestamp = timestamp;
+      }
+      const elapsedSec = (timestamp - startTimestamp) / 1000;
+      const stillAnimating = this.advance(elapsedSec);
+
+      if (stillAnimating) {
+        this.animationFrameId = requestAnimationFrame(step);
+      } else {
+        this.animationFrameId = null;
+      }
+    };
+
+    this.animationFrameId = requestAnimationFrame(step);
+  }
+
+  stop() {
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    for (const balloon of this.balloons) {
+      balloon.element.remove();
+    }
+    this.balloons = [];
+  }
+
+  /**
+   * @param {number} viewportWidth
+   * @param {number} viewportHeight
+   */
+  createBalloon(viewportWidth, viewportHeight) {
+    const element = document.createElement("div");
+    element.textContent = "🎈";
+    element.style.cssText =
+      `position:absolute;` +
+      `font-size:${randomBetween(CONFIG.BALLOON_SIZE_MIN_PX, CONFIG.BALLOON_SIZE_MAX_PX)}px;` +
+      `user-select:none;will-change:transform;display:none;` +
+      `filter:hue-rotate(${randomBetween(0, 360)}deg)`;
+    document.body.appendChild(element);
+
+    return {
+      element,
+      x: randomBetween(-viewportWidth / 2 + 50, viewportWidth / 2 - 50),
+      y: viewportHeight - randomBetween(0, 120),
+      riseSpeed: randomBetween(CONFIG.BALLOON_RISE_SPEED_MIN, CONFIG.BALLOON_RISE_SPEED_MAX),
+      sway: randomBetween(CONFIG.BALLOON_SWAY_MIN_PX, CONFIG.BALLOON_SWAY_MAX_PX),
+      swaySpeed: randomBetween(CONFIG.BALLOON_SWAY_SPEED_MIN, CONFIG.BALLOON_SWAY_SPEED_MAX),
+      swayOffset: randomBetween(0, Math.PI * 2),
+      delaySec: randomBetween(0, CONFIG.BALLOON_MAX_START_DELAY_MS) / 1000,
+    };
+  }
+
+  /**
+   * Advances every balloon by one animation frame.
+   * @param {number} elapsedSec time since the celebration started
+   * @returns {boolean} true if at least one balloon is still on screen
+   */
+  advance(elapsedSec) {
     let anyAlive = false;
 
-    for (const b of balloons) {
-      const t = elapsed - b.delay / 1000;
-      if (t < 0) {
+    for (const balloon of this.balloons) {
+      const localTime = elapsedSec - balloon.delaySec;
+      if (localTime < 0) {
         anyAlive = true;
         continue;
       }
-      b.el.style.display = "inline";
-      const y = b.y - b.vy * t;
-      const x = b.x + Math.sin(t * b.swaySpeed + b.swayOffset) * b.sway;
-      const opacity = t < 0.3 ? t / 0.3 : y < -60 ? 0 : 1;
+
+      const y = balloon.y - balloon.riseSpeed * localTime;
       if (y < -100) {
-        b.el.remove();
+        balloon.element.remove();
         continue;
       }
+
       anyAlive = true;
-      b.el.style.transform = `translate(${x}px, ${y}px)`;
-      b.el.style.opacity = opacity;
+      balloon.element.style.display = "inline";
+
+      const x = balloon.x + Math.sin(localTime * balloon.swaySpeed + balloon.swayOffset) * balloon.sway;
+      const opacity = localTime < CONFIG.BALLOON_FADE_IN_SEC ? localTime / CONFIG.BALLOON_FADE_IN_SEC : 1;
+
+      balloon.element.style.transform = `translate(${x}px, ${y}px)`;
+      balloon.element.style.opacity = String(opacity);
     }
 
-    if (anyAlive) {
-      animId = requestAnimationFrame(frame);
+    return anyAlive;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GameController - owns state, DOM bindings, and the round loop
+// ---------------------------------------------------------------------------
+
+class GameController {
+  constructor() {
+    this.dom = this.queryDom();
+    this.balloonCelebration = new BalloonCelebration();
+
+    this.audioEngine = null;
+    this.intervalGenerator = null;
+
+    this.round = 0;
+    this.score = 0;
+    this.currentPair = { first: 0, second: 0 };
+    this.hasAnswered = false;
+    this.hasPlayedOnce = false;
+    this.correctHistory = [];
+
+    this.bindEvents();
+  }
+
+  /** Caches every DOM node the controller needs. @returns {Record<string, HTMLElement>} */
+  queryDom() {
+    const ids = [
+      "setup",
+      "game",
+      "result",
+      "difficulty",
+      "waveform",
+      "startBtn",
+      "playBtn",
+      "cancelBtn",
+      "newGameBtn",
+      "nextBtn",
+      "tone1Btn",
+      "tone2Btn",
+      "roundLabel",
+      "feedback",
+      "liveStats",
+      "finalScore",
+      "sessionStats",
+    ];
+
+    const dom = {};
+    for (const id of ids) {
+      const element = document.getElementById(id);
+      if (element) {
+        dom[id] = element;
+      }
+    }
+    return dom;
+  }
+
+  startGame() {
+    const initialDifficulty = parseFloat(this.dom.difficulty.value);
+    const waveform = this.dom.waveform.value;
+
+    this.audioEngine = new AudioEngine(waveform);
+    this.intervalGenerator = new IntervalGenerator(initialDifficulty);
+
+    this.dom.setup.classList.add("hidden");
+    this.dom.game.classList.remove("hidden");
+
+    this.nextRound();
+  }
+
+  nextRound() {
+    this.round++;
+
+    if (this.round > CONFIG.TOTAL_ROUNDS) {
+      this.finishGame();
+      return;
+    }
+
+    this.hasAnswered = false;
+    this.hasPlayedOnce = false;
+
+    this.dom.playBtn.innerText = "Abspielen";
+    this.dom.nextBtn.disabled = true;
+    this.dom.tone1Btn.disabled = true;
+    this.dom.tone2Btn.disabled = true;
+
+    this.currentPair = this.intervalGenerator.generatePair();
+    this.renderRoundHeader();
+  }
+
+  playCurrentPair() {
+    this.audioEngine.playPair(this.currentPair.first, this.currentPair.second);
+
+    if (!this.hasPlayedOnce) {
+      this.dom.tone1Btn.disabled = false;
+      this.dom.tone2Btn.disabled = false;
+      this.dom.playBtn.innerText = "Erneut abspielen";
+      this.hasPlayedOnce = true;
     }
   }
 
-  animId = requestAnimationFrame(frame);
-}
+  /** @param {boolean} firstWasHigher whether the user judged the first tone as higher */
+  submitAnswer(firstWasHigher) {
+    if (this.hasAnswered) {
+      return;
+    }
+    this.hasAnswered = true;
 
-function finishGame() {
-  document.getElementById("game").classList.add("hidden");
-  document.getElementById("result").classList.remove("hidden");
+    const { first, second } = this.currentPair;
+    const isCorrect = (first > second && firstWasHigher) || (second > first && !firstWasHigher);
 
-  const accuracy = Math.round((score / TOTAL_ROUNDS) * 100);
+    if (isCorrect) {
+      this.score++;
+    }
+    this.correctHistory.push(isCorrect);
+    this.dom.feedback.textContent = isCorrect ? "✅ Super! (+1 Punkt)" : "❌ Falsch - Höre nochmal!";
 
-  document.getElementById("finalScore").innerHTML = "Punkte: <b>" + score + " / " + TOTAL_ROUNDS + "</b>";
-  document.getElementById("sessionStats").innerHTML = "Trefferquote: " + accuracy + "%";
+    this.dom.tone1Btn.disabled = true;
+    this.dom.tone2Btn.disabled = true;
+    this.dom.nextBtn.disabled = false;
 
-  if (accuracy > 90) {
-    launchBalloons();
+    this.intervalGenerator.adapt(isCorrect);
+    this.renderStats();
+  }
+
+  finishGame() {
+    this.dom.game.classList.add("hidden");
+    this.dom.result.classList.remove("hidden");
+
+    const accuracy = this.computeAccuracy(this.score, CONFIG.TOTAL_ROUNDS);
+
+    this.dom.finalScore.innerHTML = `Punkte: <b>${this.score} / ${CONFIG.TOTAL_ROUNDS}</b>`;
+    this.dom.sessionStats.textContent = `Trefferquote: ${accuracy}%`;
+
+    if (accuracy > CONFIG.CELEBRATION_ACCURACY_THRESHOLD) {
+      this.balloonCelebration.launch();
+    }
+  }
+
+  startOver() {
+    const gameInProgress = this.correctHistory.length > 0 && this.round < CONFIG.TOTAL_ROUNDS;
+    if (gameInProgress && !confirm("Neues Spiel starten?")) {
+      return;
+    }
+
+    this.balloonCelebration.stop();
+
+    this.dom.game.classList.add("hidden");
+    this.dom.result.classList.add("hidden");
+    this.dom.setup.classList.remove("hidden");
+
+    this.round = 0;
+    this.score = 0;
+    this.correctHistory = [];
+  }
+
+  renderRoundHeader() {
+    this.dom.roundLabel.textContent = `Tonpaar ${this.round} / ${CONFIG.TOTAL_ROUNDS}`;
+    this.dom.feedback.textContent = "";
+    this.renderStats();
+  }
+
+  renderStats() {
+    const accuracy = this.computeAccuracy(this.correctHistory.filter(Boolean).length, this.correctHistory.length);
+
+    this.dom.liveStats.innerHTML =
+      `Punkte:&nbsp;${this.score}` +
+      `&emsp;Trefferquote:&nbsp;${accuracy}%` +
+      `&emsp;Intervall:&nbsp;${this.intervalGenerator.difficulty.toFixed(1)}&nbsp;HT`;
+  }
+
+  /**
+   * @param {number} hits
+   * @param {number} total
+   * @returns {number} rounded percentage, 0 when total is 0
+   */
+  computeAccuracy(hits, total) {
+    return total ? Math.round((hits / total) * 100) : 0;
+  }
+
+  bindEvents() {
+    this.dom.startBtn?.addEventListener("click", () => this.startGame());
+    this.dom.playBtn?.addEventListener("click", () => this.playCurrentPair());
+    this.dom.nextBtn?.addEventListener("click", () => this.nextRound());
+    this.dom.tone1Btn?.addEventListener("click", () => this.submitAnswer(true));
+    this.dom.tone2Btn?.addEventListener("click", () => this.submitAnswer(false));
+    this.dom.cancelBtn?.addEventListener("click", () => this.startOver());
+    this.dom.newGameBtn?.addEventListener("click", () => this.startOver());
   }
 }
 
-function startGame() {
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+// ---------------------------------------------------------------------------
+// Bootstrap
+// ---------------------------------------------------------------------------
 
-  difficulty = parseFloat(document.getElementById("difficulty").value);
-  waveform = document.getElementById("waveform").value;
-
-  document.getElementById("setup").classList.add("hidden");
-  document.getElementById("game").classList.remove("hidden");
-
-  nextPair();
-}
-
-function startOver() {
-  if (correctHistory.length > 0 && round < TOTAL_ROUNDS && !confirm("Neues Spiel starten?")) {
-    return;
-  }
-
-  document.getElementById("game").classList.add("hidden");
-  document.getElementById("result").classList.add("hidden");
-  document.getElementById("setup").classList.remove("hidden");
-  round = 0;
-  score = 0;
-  correctHistory = [];
-}
+document.addEventListener("DOMContentLoaded", () => {
+  new GameController();
+});
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");

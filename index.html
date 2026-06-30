@@ -144,29 +144,29 @@
           </label>
         </div>
         <div class="center">
-          <button id="startBtn" onclick="startGame()">Training starten</button>
+          <button id="startBtn">Training starten</button>
         </div>
       </div>
       <div id="game" class="center hidden">
         <div class="center" id="roundLabel"></div>
         <div class="controls">
-          <button id="playBtn" onclick="playPair()">Abspielen</button>
-          <button id="nextBtn" onclick="nextPair()" disabled>Weiter</button>
+          <button id="playBtn">Abspielen</button>
+          <button id="nextBtn" disabled>Weiter</button>
         </div>
         <div class="controls">
-          <button id="tone1Btn" onclick="answer(true)" disabled>1. Ton höher</button>
-          <button id="tone2Btn" onclick="answer(false)" disabled>2. Ton höher</button>
+          <button id="tone1Btn" disabled>1. Ton höher</button>
+          <button id="tone2Btn" disabled>2. Ton höher</button>
         </div>
         <div id="feedback"></div>
         <div id="liveStats"></div>
-        <button class="startOverBtn" onclick="startOver()">Abbrechen</button>
+        <button id="cancelBtn" class="startOverBtn">Abbrechen</button>
       </div>
       <div id="result" class="hidden center">
         <h2>Ergebnis</h2>
         <div id="finalScore"></div>
         <div id="sessionStats"></div>
         <br />
-        <button class="startOverBtn" onclick="startOver()">Neue Runde</button>
+        <button id="newGameBtn" class="startOverBtn">Neue Runde</button>
       </div>
     </div>
     <script src="main.js"></script>
