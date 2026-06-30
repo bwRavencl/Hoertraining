@@ -1,351 +1,175 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hörtraining</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="shortcut icon" href="favicon.ico">
+    <link rel="manifest" href="manifest.json" />
+    <link rel="shortcut icon" href="favicon.ico" />
     <style>
-        :root {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --accent: #38bdf8;
-            --good: #22c55e;
-            --bad: #ef4444;
-            --text: #e2e8f0;
-        }
+      :root {
+        --bg: #0f172a;
+        --card: #1e293b;
+        --accent: #38bdf8;
+        --good: #22c55e;
+        --bad: #ef4444;
+        --text: #e2e8f0;
+      }
 
-        body {
-            margin: 0;
-            font-family: system-ui, Arial;
-            background: var(--bg);
-            color: var(--text);
-            display: flex;
-            justify-content: center;
-            padding: 20px;
-        }
+      body {
+        margin: 0;
+        font-family: system-ui, Arial;
+        background: var(--bg);
+        color: var(--text);
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+      }
 
-        h1 {
-            margin-top: 0;
-            text-align: center
-        }
+      h1 {
+        margin-top: 0;
+        text-align: center;
+      }
 
-        label {
-            display: grid;
-            justify-items: center;
-            gap: 10px;
-            text-align: center;
-            font-weight: bold;
-        }
+      label {
+        display: grid;
+        justify-items: center;
+        gap: 10px;
+        text-align: center;
+        font-weight: bold;
+      }
 
-        button {
-            font-size: 1.25rem;
-            padding: 16px;
-            min-height: 5rem;
-            min-width: 9rem;
-            width: 75%;
-            border-radius: 10px;
-            border: none;
-            cursor: pointer;
-            background: var(--accent);
-            color: black;
-            font-weight: 600;
-        }
+      button {
+        font-size: 1.25rem;
+        padding: 16px;
+        min-height: 5rem;
+        min-width: 9rem;
+        width: 75%;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        background: var(--accent);
+        color: black;
+        font-weight: 600;
+      }
 
-        button:disabled {
-            opacity: .4;
-            cursor: default
-        }
+      button:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
 
-        select {
-            padding: 6px;
-            margin-top: 6px;
-            border-radius: 6px;
-            width: 6rem;
-            border: none;
-            text-align: center;
-        }
+      select {
+        padding: 6px;
+        margin-top: 6px;
+        border-radius: 6px;
+        width: 6rem;
+        border: none;
+        text-align: center;
+      }
 
-        #app {
-            width: 100%;
-            max-width: 700px;
-            background: var(--card);
-            padding: 24px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
-        }
+      #app {
+        width: 100%;
+        max-width: 700px;
+        background: var(--card);
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      }
 
-        #feedback {
-            text-align: center;
-            font-size: 1.25rem;
-            font-weight: bold;
-        }
+      #feedback {
+        text-align: center;
+        font-size: 1.25rem;
+        font-weight: bold;
+      }
 
-        #liveStats {
-            text-align: center;
-            line-height: 1.75;
-            margin: 16px 0 32px 0;
-            font-size: .9rem;
-            opacity: .9
-        }
+      #liveStats {
+        text-align: center;
+        line-height: 1.75;
+        margin: 16px 0 32px 0;
+        font-size: 0.9rem;
+        opacity: 0.9;
+      }
 
-        #startBtn {
-            width: unset;
-            width: 33%;
-        }
+      #startBtn {
+        width: unset;
+        width: 33%;
+      }
 
-        .center {
-            text-align: center
-        }
+      .center {
+        text-align: center;
+      }
 
-        .hidden {
-            display: none
-        }
+      .hidden {
+        display: none;
+      }
 
-        .controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            justify-items: center;
-            align-items: end;
-            gap: 12px;
-            margin: 50px 0 50px 0;
-        }
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        justify-items: center;
+        align-items: end;
+        gap: 12px;
+        margin: 50px 0 50px 0;
+      }
 
-        .startOverBtn {
-            background: #da9370;
-            min-height: unset;
-            width: 33%;
-        }
+      .startOverBtn {
+        background: #da9370;
+        min-height: unset;
+        width: 33%;
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <div id="app">
-        <h1>Hörtraining</h1>
-        <div id="setup">
-            <div class="controls">
-                <label>
-                    Start-Schwierigkeit<br>
-                    <select id="difficulty">
-                        <option value="12">sehr leicht</option>
-                        <option value="8">leicht</option>
-                        <option value="5" selected>mittel</option>
-                        <option value="3">schwer</option>
-                    </select>
-                </label>
-                <label>
-                    Wellenform<br>
-                    <select id="waveform">
-                        <option value="sine">Sinus</option>
-                        <option value="triangle">Dreieck</option>
-                        <option value="square">Rechteck</option>
-                        <option value="sawtooth">Sägezahn</option>
-                    </select>
-                </label>
-            </div>
-            <div class="center">
-                <button id="startBtn" onclick="startGame()">Training starten</button>
-            </div>
+      <h1>Hörtraining</h1>
+      <div id="setup">
+        <div class="controls">
+          <label>
+            Start-Schwierigkeit<br />
+            <select id="difficulty">
+              <option value="12">sehr leicht</option>
+              <option value="8">leicht</option>
+              <option value="5" selected>mittel</option>
+              <option value="3">schwer</option>
+            </select>
+          </label>
+          <label>
+            Wellenform<br />
+            <select id="waveform">
+              <option value="sine">Sinus</option>
+              <option value="triangle">Dreieck</option>
+              <option value="square">Rechteck</option>
+              <option value="sawtooth">Sägezahn</option>
+            </select>
+          </label>
         </div>
-        <div id="game" class="center hidden">
-            <div class="center" id="roundLabel"></div>
-            <div class="controls">
-                <button id="playBtn" onclick="playPair()">Abspielen</button>
-                <button id="nextBtn" onclick="nextPair()" disabled>Weiter</button>
-            </div>
-            <div class="controls">
-                <button id="tone1Btn" onclick="answer(true)" disabled>1. Ton höher</button>
-                <button id="tone2Btn" onclick="answer(false)" disabled>2. Ton höher</button>
-            </div>
-            <div id="feedback"></div>
-            <div id="liveStats"></div>
-            <button class="startOverBtn" onclick="startOver()">Neue Runde</button>
+        <div class="center">
+          <button id="startBtn" onclick="startGame()">Training starten</button>
         </div>
-        <div id="result" class="hidden center">
-            <h2>Ergebnis</h2>
-            <div id="finalScore"></div>
-            <div id="sessionStats"></div>
-            <br>
-            <button class="startOverBtn" onclick="startOver()">Neue Runde</button>
+      </div>
+      <div id="game" class="center hidden">
+        <div class="center" id="roundLabel"></div>
+        <div class="controls">
+          <button id="playBtn" onclick="playPair()">Abspielen</button>
+          <button id="nextBtn" onclick="nextPair()" disabled>Weiter</button>
         </div>
+        <div class="controls">
+          <button id="tone1Btn" onclick="answer(true)" disabled>1. Ton höher</button>
+          <button id="tone2Btn" onclick="answer(false)" disabled>2. Ton höher</button>
+        </div>
+        <div id="feedback"></div>
+        <div id="liveStats"></div>
+        <button class="startOverBtn" onclick="startOver()">Neue Runde</button>
+      </div>
+      <div id="result" class="hidden center">
+        <h2>Ergebnis</h2>
+        <div id="finalScore"></div>
+        <div id="sessionStats"></div>
+        <br />
+        <button class="startOverBtn" onclick="startOver()">Neue Runde</button>
+      </div>
     </div>
-    <script>
-        const TOTAL_ROUNDS = 20
-
-        let round = 0
-        let score = 0
-        let difficulty
-        let waveform
-
-        let freq1
-        let freq2
-
-        let answered = false
-        let played = false
-
-        let correctHistory = []
-
-        let audioCtx
-
-        const playBtn = document.getElementById("playBtn")
-        const nextBtn = document.getElementById("nextBtn")
-        const tone1Btn = document.getElementById("tone1Btn")
-        const tone2Btn = document.getElementById("tone2Btn")
-
-        function randomBaseFrequency() { return 220 + Math.random() * 440 }
-
-        function intervalRatio(semitones) { return Math.pow(2, semitones / 12) }
-
-        function generatePair() {
-            const base = randomBaseFrequency()
-            const ratio = intervalRatio(difficulty)
-
-            if (Math.random() < 0.5) {
-                freq1 = base
-                freq2 = base * ratio
-            } else {
-                freq1 = base * ratio
-                freq2 = base
-            }
-        }
-
-        function playTone(freq, duration = 0.6) {
-            const osc = audioCtx.createOscillator()
-            const gain = audioCtx.createGain()
-
-            osc.type = waveform
-            osc.frequency.value = freq
-
-            osc.connect(gain)
-            gain.connect(audioCtx.destination)
-
-            const now = audioCtx.currentTime
-
-            gain.gain.setValueAtTime(0.001, now)
-            gain.gain.exponentialRampToValueAtTime(.5, now + .02)
-            gain.gain.exponentialRampToValueAtTime(.001, now + duration)
-
-            osc.start()
-            osc.stop(now + duration)
-        }
-
-        function playPair() {
-            playTone(freq1)
-            setTimeout(() => playTone(freq2), 800)
-
-            if (!played) {
-                tone1Btn.disabled = false
-                tone2Btn.disabled = false
-                playBtn.innerText = "Erneut abspielen"
-                played = true
-            }
-        }
-
-        function nextPair() {
-            round++
-
-            if (round > TOTAL_ROUNDS) {
-                finishGame()
-                return
-            }
-
-            answered = false
-            played = false
-
-            playBtn.innerText = "Abspielen"
-            nextBtn.disabled = true
-
-            tone1Btn.disabled = true
-            tone2Btn.disabled = true
-
-            generatePair()
-            updateUI()
-        }
-
-        function answer(firstHigher) {
-            if (answered) return
-
-            answered = true
-
-            const correct = (freq1 > freq2 && firstHigher) || (freq2 > freq1 && !firstHigher)
-
-            if (correct) {
-                score++
-                correctHistory.push(true)
-                document.getElementById("feedback").innerHTML = "✅ Super! (+1 Punkt)"
-            }
-            else {
-                correctHistory.push(false)
-                document.getElementById("feedback").innerHTML = "❌ Falsch - Höre nochmal!"
-            }
-
-            tone1Btn.disabled = true
-            tone2Btn.disabled = true
-            nextBtn.disabled = false
-
-            adaptDifficulty(correct)
-            updateStats()
-        }
-
-        function adaptDifficulty(correct) {
-            if (correct) difficulty = Math.max(1, difficulty - 0.5)
-            else difficulty = Math.min(12, difficulty + 0.5)
-        }
-
-        function updateUI() {
-            document.getElementById("roundLabel").innerText = "Tonpaar " + round + " / " + TOTAL_ROUNDS
-            document.getElementById("feedback").innerText = ""
-            updateStats()
-        }
-
-        function updateStats() {
-            const accuracy = correctHistory.length
-                ? Math.round(correctHistory.filter(x => x).length / correctHistory.length * 100)
-                : 0
-
-            document.getElementById("liveStats").innerHTML =
-                "Punkte:&nbsp;" + score +
-                "&emsp;Trefferquote:&nbsp;" + accuracy + "%" +
-                "&emsp;Intervall:&nbsp;" + difficulty.toFixed(1) + "&nbsp;HT"
-        }
-
-        function finishGame() {
-            document.getElementById("game").classList.add("hidden")
-            document.getElementById("result").classList.remove("hidden")
-
-            const accuracy = Math.round(score / TOTAL_ROUNDS * 100)
-
-            document.getElementById("finalScore").innerHTML = "Punkte: <b>" + score + " / " + TOTAL_ROUNDS + "</b>"
-            document.getElementById("sessionStats").innerHTML = "Trefferquote: " + accuracy + "%"
-        }
-
-        function startGame() {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)()
-
-            difficulty = parseFloat(document.getElementById("difficulty").value)
-            waveform = document.getElementById("waveform").value
-
-            document.getElementById("setup").classList.add("hidden")
-            document.getElementById("game").classList.remove("hidden")
-
-            nextPair()
-        }
-
-        function startOver() {
-            document.getElementById("game").classList.add("hidden")
-            document.getElementById("result").classList.add("hidden")
-            document.getElementById("setup").classList.remove("hidden")
-            round = 0
-            score = 0
-            correctHistory = []
-        }
-
-        if ("serviceWorker" in navigator) {
-            navigator.serviceWorker.register("sw.js")
-        }
-    </script>
-</body>
-
+    <script src="main.js"></script>
+  </body>
 </html>
