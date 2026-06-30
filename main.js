@@ -245,6 +245,10 @@ function startGame() {
 }
 
 function startOver() {
+  if (correctHistory.length > 0 && round < TOTAL_ROUNDS && !confirm("Neues Spiel starten?")) {
+    return;
+  }
+
   document.getElementById("game").classList.add("hidden");
   document.getElementById("result").classList.add("hidden");
   document.getElementById("setup").classList.remove("hidden");
